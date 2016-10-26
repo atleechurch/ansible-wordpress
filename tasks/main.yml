@@ -1,0 +1,87 @@
+---
+ - name: Delete the html directory
+   file: path=/var/www/html state=absent recurse=no
+   ignore_errors: True
+
+ - name: Ensure Python MYSQLDB modules is installed
+   apt: pkg='python-mysqldb' state=latest
+
+ - name: Database Check -- MySQL
+   include: mysql.yml
+   when: wordpress_db_engine == 'mysql'
+
+ - name: Database Check -- RDS
+   include: rds.yml
+   when: wordpress_db_engine == 'rds'
+
+ - name: Check that {{ wordpress_dir }} exist
+   command: /usr/bin/test -e {{ wordpress_dir }}
+   register: dir_exists
+   ignore_errors: True
+
+ - name: Create wordpress directory at {{ wordpress_dir }}
+   when: dir_exists.rc != 0
+   file: state=directory path={{ wordpress_dir }} owner=www-data group=www-data mode=0755 recurse=yes
+
+#
+# Download the tar.gz from wordpress website
+# Required Values:
+# - wordpress_url : Location of the Wordpress tar.gz
+# - wordpress_dir : Destination for the wordpress install
+#
+ - name: Download the latest wordpress
+   get_url: url={{ wordpress_url }} dest={{ wordpress_dir }}/latest.tar.gz
+   when: wordpress_fetch_method == "download"
+
+ - name: Unzip the downloaded wordpress zipped file
+   unarchive: src={{ wordpress_dir }}/latest.tar.gz dest={{ wordpress_dir }} copy=no
+   when: wordpress_fetch_method == "download"
+
+ - name: Rename the extracted wordpress directory as Website name
+   command: mv {{ wordpress_dir }}/wordpress {{ wordpress_dir }}/{{ website_name }}
+   when: wordpress_fetch_method == "download"
+
+#
+# Grab Wordpress from Git instead of downloading the tar.gz
+# This can get the wordpress checkout from github
+# or could be used to grab your customized version with plugins already set up
+#
+# Reccomended to use WOrdpress as a submodule in the second case, and configure
+# it to keep plugins etc. seperately.
+#
+
+ - name: Wordpress - Fetch Git Repo
+   git: repo={{ wordpress_git_url }} dest={{ wordpress_dir }}/{{ website_name }} depth=1 accept_hostkey=yes version={{ wordpress_git_tag }} force=yes
+   when: wordpress_fetch_method ==  "git"
+
+ - name: Fetch random salts for WordPress config
+   local_action: command curl https://api.wordpress.org/secret-key/1.1/salt/
+   register: "wp_salt"
+   sudo: no
+
+ - name: Copy the "wp-config.php" file inside the {{ website_name }} directory
+   template: src=wp-config.php.j2 dest={{ wordpress_dir }}/{{ website_name }}/wp-config.php
+
+ - name: Reset the permission on Website directory
+   file: state=directory path={{ wordpress_dir }}/{{ website_name }} owner=www-data group=www-data recurse=yes
+
+ - name: Disable the Test Nginx Site
+   file: dest=/etc/nginx/sites-enabled/test_site state=absent
+   ignore_errors: True
+   notify:
+     - Restart Nginx
+
+ - name: Add the "{{ website_name }}" config
+   template: src=virtualhost.conf.j2 dest=/etc/nginx/sites-available/{{ website_name }} owner=root group=root
+   notify:
+     - Restart Nginx
+
+ - name: Enable "{{ website_name }}" Site Config
+   file: src=/etc/nginx/sites-available/{{ website_name }} dest=/etc/nginx/sites-enabled/{{ website_name }} state=link
+   notify:
+     - Restart Nginx
+
+ - name: Set "{{ website_name }}" as the default site
+   file: src=/etc/nginx/sites-available/{{ website_name }} dest=/etc/nginx/sites-enabled/default state=link
+   notify:
+     - Restart Nginx

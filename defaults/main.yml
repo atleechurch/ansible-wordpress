@@ -1,0 +1,17 @@
+---
+  website_name: "{{ domain }}"  # Alternative to use fqdn instead if this is for a subdomain
+  wordpress_dir: /var/www
+  wordpress_url: http://wordpress.org/latest.tar.gz
+  wordpress_db_engine: mysql
+  wordpress_fetch_method: download
+  wordpress_db: wordpress
+  wordpress_db_url: "{{ VAULT_DATABASE_ADDRESS }}"
+  wordpress_user: "{{ VAULT_WORDPRESS_DB_USER }}"
+  wordpress_passwd: "{{ VAULT_WORDPRESS_DB_PASSWORD }}"
+  wordpress_git_tag: HEAD
+  wordpress_git_url: https://github.com/WordPress/WordPress.git
+  wordpress_backup_url: "{{ VAULT_WORDPRESS_BACKUP_URL }}"
+  wordpress_restore: false
+  wordpress_aws_access: "{{ VAULT_WORDPRESS_AWS_ACCESS }}"
+  wordpress_aws_secret: "{{ VAULT_WORDPRESS_AWS_SECRET }}"
+  wordpress_s3: false

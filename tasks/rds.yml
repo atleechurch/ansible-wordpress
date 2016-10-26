@@ -1,0 +1,16 @@
+---
+  #
+  # To be included when using the RDS database engine
+  #
+
+ - name: Wordpress | Make sure mariadb cli tools are installed
+   apt: pkg=mariadb-client-core-10.0 state=latest update_cache=true
+
+ - name: check if DB exists
+   shell: mysql -e 'SHOW DATABASES;' --user={{ wordpress_user }} --password={{ wordpress_passwd }} --host={{ wordpress_db_url }} | grep {{ wordpress_db }}
+   register: dbstatus
+   ignore_errors: True
+
+ - name: Create a new database with name '{{ wordpress_db }}'
+   mysql_db: name={{ wordpress_db }} encoding=utf8 collation=utf8_general_ci state=present login_host={{ wordpress_db_url }} login_user={{ wordpress_user }} login_password={{ wordpress_passwd }}
+   when: dbstatus.rc != 0

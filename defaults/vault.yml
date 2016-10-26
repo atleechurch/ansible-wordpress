@@ -1,0 +1,10 @@
+---
+#
+# NOTE: This file MUST be encrypted before placing somewhere publicly
+# also make sure that you change these very unsecure values to something
+# a bit more secure
+#
+   VAULT_WORDPRESS_DB_USER: wordpress_user
+   VAULT_WORDPRESS_DB_PASSWORD: wordpress_password
+   VAULT_DATABASE_ADDRESS: localhost
+   VAULT_WORDPRESS_BACKUP_URL: backup.zip
